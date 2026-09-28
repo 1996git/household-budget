@@ -28,8 +28,17 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
-@router.post("/register", status_code=201)
+class MessageResponse(BaseModel):
+    message: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+
+
+@router.post("/register", status_code=201, response_model=MessageResponse)
 def register_user(user: UserCreate):
+    #print("登録ユーザー名：", repr(user.username))
     password_hash = hash_password(user.password)
     try:
         manager.create_user(
@@ -44,7 +53,7 @@ def register_user(user: UserCreate):
     
     return {"message": "ユーザー登録が完了しました"}
 
-@router.post("/login")
+@router.post("/login", response_model=TokenResponse)
 def login(user: UserLogin):
     db_user = manager.get_user_by_username(user.username)
     if db_user is None:

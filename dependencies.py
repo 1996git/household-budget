@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer
 from security import decode_access_token
 
+#SwaggerでAuthorizeが使える
 security = HTTPBearer()
 
 def get_current_user(credentials=Depends(security)):

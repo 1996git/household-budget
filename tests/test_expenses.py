@@ -382,6 +382,8 @@ def test_register_user_username_strip():
                "password":"password123"
           }
      )
+     #print(response.status_code)
+     #print(response.json())
 
      assert response.status_code == 201
 
@@ -583,6 +585,7 @@ def test_monthly_summary_no_expenses(auth_headers):
      assert data["year"] == 2026
      assert data["month"] == 9
      assert data["total"] == 0
+
 
 def test_monthly_summary_only_own_data(auth_headers, test_expense, other_user_expense):
      response = client.get(

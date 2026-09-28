@@ -109,7 +109,11 @@ def total_expense(user_id: int = Depends(get_current_user)):
     total = manager.total_expense(user_id)
     return {"total":total}
 
-@router.get("/{expense_id}", response_model=ExpenseResponse)
+@router.get("/{expense_id}", 
+            response_model=ExpenseResponse, 
+            summary="支出を取得", 
+            description="指定したIDの支出を取得します。"
+            )
 def get_expense(expense_id: int, user_id = Depends(get_current_user)):
     expense = manager.get_expense(expense_id, user_id)
     if not expense:
