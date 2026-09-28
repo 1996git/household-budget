@@ -14,6 +14,21 @@ class ExpenseResponse(BaseModel):
     amount: int
     expense_date: date
 
+class MessageResponse(BaseModel):
+    message: str
+
+class TotalResponse(BaseModel):
+    total: int
+
+class CategorySummaryResponse(BaseModel):
+    category: str
+    total: int
+
+class MonthlySummaryResponse(BaseModel):
+    year: int
+    month: int
+    total: int
+
 class ExpenseCreate(BaseModel):
     category: str = Field(min_length=1)
     amount: int = Field(gt=0)
@@ -27,7 +42,7 @@ class ExpenseCreate(BaseModel):
             raise ValueError("カテゴリーを入力してください")
 
         return value
-    
+        
 class ExpenseUpdate(BaseModel):
     category: str = Field(min_length=1)
     amount: int = Field(gt=0)
@@ -42,7 +57,7 @@ class ExpenseUpdate(BaseModel):
    
         return value
 
-@router.get("/")
+@router.get("/", response_model=list[ExpenseResponse])
 def get_expenses(user_id: int = Depends(get_current_user)):
     expenses = manager.get_expenses(user_id)
     #ExpenseResponseを書いてるのはget処理が一連の順序を経て起動する役割だから。
@@ -69,16 +84,27 @@ def search_expenses(category: str = Query(...,), user_id: int = Depends(get_curr
         for expense in expenses
     ]
 
-@router.get("/month")
-def monthly_summary(year:int, month:int, user_id: int = Depends(get_current_user)):
-    month_expenses = manager.monthly_summary(year, month, user_id)
-    return month_expenses 
+@router.get("/month", response_model=MonthlySummaryResponse)
+def monthly_summary(year:int, month:int = Query(..., ge=1, le=12), user_id: int = Depends(get_current_user)):
+    total = manager.monthly_summary(year, month, user_id)
+    return {
+        "year": year,
+        "month": month,
+        "total": total
+    }  
 
-@router.get("/summary/category")
+@router.get("/summary/category", response_model=list[CategorySummaryResponse])
 def category_summary(user_id: int = Depends(get_current_user)):
-    return manager.category_summary(user_id)
+    rows = manager.category_summary(user_id)
+    return [
+        {
+            "category":row[0],
+            "total":row[1]
+        }
+        for row in rows
+    ]
 
-@router.get("/summary/total")
+@router.get("/summary/total", response_model=TotalResponse)
 def total_expense(user_id: int = Depends(get_current_user)):
     total = manager.total_expense(user_id)
     return {"total":total}
@@ -105,20 +131,25 @@ def get_expense(expense_id: int, user_id = Depends(get_current_user)):
 ・作成したデータを返すことも多い。
 """
 #postはデータを新しく作る（登録）するメソッド
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, response_model=ExpenseResponse)
 #関数を渡す際に型テェックをする必要が在る。
 def create_expense(expense: ExpenseCreate, user_id: int = Depends(get_current_user)):
-    manager.add_expense(
+    expense_id = manager.add_expense(
         expense.category,
         expense.amount,
         expense.expense_date,
         user_id
     )
 
-    return {"message": "支出を追加しました"}
+    return {
+        "id": expense_id,
+        "category": expense.category,
+        "amount": expense.amount,
+        "expense_date": expense.expense_date
+    }
 
 #putは既存データの更新
-@router.put("/{expense_id}")
+@router.put("/{expense_id}", response_model=MessageResponse)
 def update_expense(expense_id: int, expense: ExpenseUpdate, user_id: int = Depends(get_current_user)):
     update_count = manager.update_expense(
         expense_id,

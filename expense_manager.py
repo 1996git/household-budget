@@ -8,10 +8,15 @@ class ExpenseManager:
                 """
                 INSERT INTO expenses(category, amount, expense_date, user_id)
                 VALUES(%s, %s, %s, %s)
+                RETURNING id
                 """,
                 (category, amount, date, user_id)
-                )
+            )
 
+                expense_id = cursor.fetchone()[0]
+
+        return expense_id
+        
     def get_expenses(self, user_id):
         with get_connection() as connection:
             with connection.cursor() as cursor:
@@ -37,7 +42,7 @@ class ExpenseManager:
                     WHERE id = %s
                     AND user_id = %s
                     """,
-                    (expense_id,user_id)
+                    (expense_id, user_id)
                 )
 
                 expense = cursor.fetchone()
@@ -118,7 +123,7 @@ class ExpenseManager:
            with connection.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT SUM(amount)
+                SELECT COALESCE(SUM(amount),0)  
                 FROM expenses
                 WHERE user_id = %s
                 """,
@@ -133,7 +138,7 @@ class ExpenseManager:
            with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT SUM(amount)
+                    SELECT COALESCE(SUM(amount),0)
                     FROM expenses
                     WHERE EXTRACT(YEAR FROM expense_date) = %s 
                     AND EXTRACT(MONTH FROM expense_date) = %s

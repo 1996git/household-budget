@@ -15,6 +15,11 @@ def get_connection():
         port=os.getenv("DB_PORT"),
     )
 
+    #print("接続DB：", connection.info.dbname)
+    #print("接続ユーザー:", connection.info.user)
+
+    #return connection
+
     try:
         yield connection
         connection.commit()

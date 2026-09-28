@@ -1,18 +1,29 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from user_manager import UserManager
 from security import hash_password, verify_password, create_access_token
+from psycopg2.errors import UniqueViolation
 
 router = APIRouter(
+    prefix="/users",
     tags=["users"]
 )
 
 manager = UserManager()
 
 class UserCreate(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=3)
+    password: str = Field(min_length=8)
 
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value):
+        value = value.strip()
+        if not value:
+            raise ValueError("ユーザー名を入力してください")
+        
+        return value
+    
 class UserLogin(BaseModel):
     username: str
     password: str
@@ -20,11 +31,17 @@ class UserLogin(BaseModel):
 @router.post("/register", status_code=201)
 def register_user(user: UserCreate):
     password_hash = hash_password(user.password)
-    manager.create_user(
-        user.username,
-        password_hash
-    )
-
+    try:
+        manager.create_user(
+            user.username,
+            password_hash
+        )
+    except UniqueViolation:
+        raise HTTPException(
+            status_code=409,
+            detail="そのユーザー名は既に使用されています"
+        )
+    
     return {"message": "ユーザー登録が完了しました"}
 
 @router.post("/login")
